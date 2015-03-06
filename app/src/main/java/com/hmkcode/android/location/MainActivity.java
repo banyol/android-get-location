@@ -2,6 +2,7 @@ package com.hmkcode.android.location;
 
 import android.location.Location;
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -11,6 +12,12 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 public class MainActivity extends Activity implements
         GoogleApiClient.ConnectionCallbacks,
@@ -50,7 +57,8 @@ public class MainActivity extends Activity implements
     @Override
     protected void onStop() {
         // Disconnecting the client invalidates it.
-        mGoogleApiClient.disconnect();
+        Log.d(TAG, "Calling stop");
+//        mGoogleApiClient.disconnect();
         super.onStop();
     }
 
@@ -78,5 +86,33 @@ public class MainActivity extends Activity implements
     @Override
     public void onLocationChanged(Location location) {
         mLocationView.setText("Location received: " + location.toString());
+        new MyAsyncTask().execute(location);
     }
+
+    private class MyAsyncTask extends AsyncTask<Location, Integer, String> {
+
+        @Override
+        protected String doInBackground(Location... params) {
+            postData(params[0]);
+            return null;
+        }
+
+        public void postData(Location loc) {
+            HttpClient httpClient = new DefaultHttpClient();
+            try {
+                HttpPost request = new HttpPost("http://chasegps.meteor.com/add_coords/" + loc.getLatitude() + "/" + loc.getLongitude() + "/" + System.currentTimeMillis());
+                HttpResponse response = httpClient.execute(request);
+//                response.getStatusLine().getStatusCode();
+                Log.d("mine", "SUCCESS request");
+                // handle response here...
+            }catch (Exception ex) {
+                // handle exception here
+                Log.d("mine", "FAILED request");
+            } finally {
+                httpClient.getConnectionManager().shutdown();
+            }
+        }
+
+    }
+
 }
